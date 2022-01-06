@@ -2,7 +2,6 @@ import argparse
 import random
 
 from bs4 import BeautifulSoup
-from googletrans import Translator
 import requests
 from tqdm import tqdm
 
@@ -15,7 +14,7 @@ DEFAULT_END_CHAR = "。"
 REPLACE_CHARS = {"“": "「", "”": "」"}
 BLANK_WORD_UNDERSCORE = "_____________"
 BLANK_CHAR_UNDERSCORE = "____"
-GROUP_SEPARATOR = "*************************************************************"
+GROUP_SEPARATOR = "**********************************************************************************"
 WORD_SEPARATOR = "   "
 INDENTION = "  "
 NUM_ALT_SENTENCES = 5
@@ -63,15 +62,9 @@ def _search_sentences(word):
     return sentences
 
 
-def _simchi_to_trachi(string):
-    translator = Translator()
-    translation = translator.translate(string, src="zh-CN", dest="zh-TW")
-    return translation.text
-
-
 def _write_questions(word_sentences_list, args):
     with open(args["questions_file"], "w") as f:
-        f.write("選詞填充：選出適當的詞語，填在____上。\n\n\n")
+        f.write("【題目】\n\n\n")
         
         groups = [word_sentences_list[i : i + args["questions_per_group"]] for i in range(0, len(word_sentences_list), args["questions_per_group"])]
 
@@ -112,12 +105,12 @@ def _write_questions(word_sentences_list, args):
 
 def _write_alt_questions(word_sentences_list, args):
     with open(args["alt_questions_file"], "w") as f:
-        f.write("【選詞填充其他參考句子】\n\n\n")
+        f.write("【可用作替換的句子】\n\n\n")
 
         groups = [word_sentences_list[i : i + args["questions_per_group"]] for i in range(0, len(word_sentences_list), args["questions_per_group"])]
 
         for group in groups:
-            f.write(GROUP_SEPARATOR + "\n")
+            f.write(GROUP_SEPARATOR + "\n\n")
 
             for i, word_sentences in enumerate(group):
                 f.write(str(i + 1) + ".  ")
@@ -141,19 +134,23 @@ def _write_alt_questions(word_sentences_list, args):
                         f.write(INDENTION + sentence + "\n")
                 else:
                     f.write(INDENTION + "（無）\n")
+                
+                f.write("\n")
 
 
 def _write_answers(word_sentences_list, args):
     with open(args["answers_file"], "w") as f:
-        f.write("【選詞填充答案】\n\n\n")
+        f.write("【答案】\n\n\n")
 
         groups = [word_sentences_list[i : i + args["questions_per_group"]] for i in range(0, len(word_sentences_list), args["questions_per_group"])]
 
         for group in groups:
-            f.write(GROUP_SEPARATOR + "\n")
+            f.write(GROUP_SEPARATOR + "\n\n")
 
             for i, word_sentences in enumerate(group):
                 f.write(str(i + 1) + ".  " + word_sentences["word"] + "\n")
+
+            f.write("\n")
 
 
 def _generate_exercises(args):
@@ -169,13 +166,12 @@ def _generate_exercises(args):
             word, hide_index = splitted[0], int(splitted[1])
         else:
             word, hide_index = line, None
-        
+
         results.append({"word": word, "hide_index": hide_index})
 
     for i in tqdm(range(0, len(results))):
         word = results[i]["word"]
-        sentences = _search_sentences(word)
-        sentences = [_simchi_to_trachi(s) for s in sentences]
+        sentences = _search_sentences(word)        
         results[i]["sentences"] = sentences
 
     random.shuffle(results)
@@ -191,8 +187,8 @@ def _get_parser():
     parser.add_argument("questions_file", help="output exercise questions file path")
     parser.add_argument("alt_questions_file", help="output exercise alternative questions file path")
     parser.add_argument("answers_file", help="output exercise answers file path")
-    parser.add_argument("--fill_char_mode", action="store_true", help="Fill in a charactor within a word, instead of fill in a word")
-    parser.add_argument("--questions_per_group", type=int, default=10, help="number of questions per group")
+    parser.add_argument("--fill_char_mode", action="store_true", help="switch to the mode that filling in a charactor instead of filling in a word")
+    parser.add_argument("--questions_per_group", type=int, default=5, help="number of questions per group, default is 5")
     return parser
 
 
